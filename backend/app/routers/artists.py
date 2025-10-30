@@ -2,22 +2,22 @@
 
 Este módulo define rotas para operações CRUD de artistas usando FastAPI.
 
-Variáveis:
-- fake_db: Lista simulando um banco de dados de usuários, cada artista é um dicionário com 'id' e 'name'.
-
-Nota: Este código utiliza um banco de dados em memória apenas para fins de demonstração.
 
 """
 
-from fastapi import APIRouter
-from app.models import Artist
-from app.db.fake_db import fake_db
+from fastapi import APIRouter, HTTPException
+from app.models.artist import Artist
+from app.db.supabase import get_supabase
 
 router = APIRouter()
+supabase = get_supabase()
 
 @router.get("/")
-def get_users():
-    return fake_db.artist
+def get_artists():
+    response = supabase.table("artists").select("*").execute()
+    if response.error:
+        raise HTTPException(status_code=500, detail=str(response.error))
+    return response.data
 
 @router.get("/{artist_id}")
 def get_artist(artist_id: int):
