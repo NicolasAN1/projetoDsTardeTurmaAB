@@ -30,9 +30,10 @@ def get_artist(artist_id: int):
 
 @router.post("/")
 def create_artist(artist: Artist):
-    new_artist = {"id": len(fake_db) + 1, "name": artist.name}
-    fake_db.artists.append(new_artist)
-    return new_artist
+    response = supabase.table("artists").insert({"name": artist.name}).execute()
+    if response.error:
+        raise HTTPException(status_code=500, detail=str(response.error))
+    return response.data
 
 @router.put("/{artist_id}")
 def update_artist(artist_id: int, artist: Artist):
