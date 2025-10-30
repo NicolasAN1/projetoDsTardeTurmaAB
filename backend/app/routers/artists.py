@@ -37,10 +37,16 @@ def create_artist(artist: Artist):
 
 @router.put("/{artist_id}")
 def update_artist(artist_id: int, artist: Artist):
-    if artist_id > len(fake_db):
-        return {"error": "Artist not found"}
-    fake_db.artists[artist_id - 1] = {"id": artist_id, "name": artist.name}
-    return {"message": "Artist updated"}
+    existing = supabase.table("artists").select("*").eq("id", artist_id).single().execute()
+    if existing.error:
+        raise HTTPException(status_code=500, detail=str(existing.error))
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Artist not found")
+    # Atualiza
+    response = supabase.table("artists").update({"name": artist.name}).eq("id", artist_id).execute()
+    if response.error:
+        raise HTTPException(status_code=500, detail=str(response.error))
+    return {"message": "Artist updated", "data": response.data}
 
 @router.delete("/{artist_id}")
 def delete_artist(artist_id: int):
