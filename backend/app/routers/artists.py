@@ -21,9 +21,12 @@ def get_artists():
 
 @router.get("/{artist_id}")
 def get_artist(artist_id: int):
-    artist = next((artist for artist in fake_db if artist["id"] == artist_id), None)
-    if artist:
-        return artist
+    response = supabase.table("artists").select("*").eq("id", artist_id).single().execute()
+    if response.error:
+        raise HTTPException(status_code=500, detail=str(response.error))
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Artist not found")
+    return response.data
 
 @router.post("/")
 def create_artist(artist: Artist):
