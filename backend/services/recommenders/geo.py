@@ -1,114 +1,91 @@
-from typing import List, Dict, Any, Tuple
-from peewee import fn
-import logging
-from ramos_popular import recommend_popular
-from utils.ramos_helper import try_import_models
-from utils.geo import _haversine_km
+import supabase as sb
+import haversine as hs
 
-logger = logging.getLogger(__name__)
+url = "https://mflpegvqdnqdfvbvfdos.supabase.co"
+key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1mbHBlZ3ZxZG5xZGZ2YnZmZG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwNDQ3ODEsImV4cCI6MjA3NTYyMDc4MX0.DLcfAc8u1dA91oISnOEMTIq1GxQZ7AAUXWiWmlf0Uo4"
 
-def recommend_geo(User=None, Music=None, UserMusicRating=None, user_id: int = None, radius_km: float = 20.0, limit: int = 10, method: str = "haversine") -> List[Dict[str, Any]]:
-  if not (User and Music and UserMusicRating):
-    imported = try_import_models()
-    User = User or imported.get("User")
-    Music = Music or imported.get("Music")
-    UserMusicRating = UserMusicRating or imported.get("UserMusicRating")
+"""
+Essa função retorna uma lista com dicionários.
+Cada dicionário possui: id, nome da música e o nome do artista.
 
-  if not (User and Music and UserMusicRating):
-    raise RuntimeError("Models not provided.")
+Estrutura:
+[{'id': 1, 'title': 'Nome', 'artist_id': {'name': 'Nome do artista'}]
 
-  user = User.get_or_none(User.id == user_id)
+Parâmetros:
+user (int) = Id do usuário que irá receber as recomendações.
+radius (int | float) = Raio, em km, do círculo em volta do usuário.
+limit = Quantidade de recomendações que retornarão.
+"""
 
-  if not user or getattr(user, "latitude", None) is None or getattr(user, "longitude", None) is None:
-    return recommend_popular(User=User, Music=Music, UserMusicRating=UserMusicRating, user_id=user_id, limit=limit)
-
-  q_limit = 1000
-
-  rated_subq = (
-    UserMusicRating
-      .select(UserMusicRating.music)
-      .where(UserMusicRating.user == user_id)
-  )
-
-  if method == "earth_distance":
-    try:
-      meter_limit = int(radius_km * 1000.0)
-      q = (
-        Music
-          .select(Music, fn.earth_distance(fn.ll_to_earth(User.latitude, User.longitude), fn.ll_to_earth(user.latitude, user.longitude)).alias("dist_m"))
-          .join(User, on=(Music.artist == User.id))
-          .where((fn.earth_distance(fn.ll_to_earth(User.latitude, User.longitude), fn.ll_to_earth(user.latitude, user.longitude)) < meter_limit) & (Music.id.not_in(rated_subq)))
-          .order_by(fn.earth_distance(fn.ll_to_earth(User.latitude, User.longitude), fn.ll_to_earth(user.latitude, user.longitude)), Music.posted_at.desc())
-          .limit(limit)
-      )
-      out = []
-      
-      for row in q:
-        dist_m = getattr(row, "dist_m", None)
-        out.append({
-          "id": row.id,
-          "title": getattr(row, "title", None),
-          "artist_id": getattr(row, "artist_id", None),
-          "distance_km": (float(dist_m) / 1000.0) if dist_m is not None else None,
-          "posted_at": getattr(row, "posted_at", None)
-        })
-
-      if len(out) < limit:
-        more = recommend_popular(User=User, Music=Music, UserMusicRating=UserMusicRating, user_id=user_id, limit=limit - len(out))
-        existing = {x["id"] for x in out}
-        
-        for m in more:
-          if m["id"] not in existing:
-            out.append(m)
-      
-      return out
-    except Exception as exc:
-      logger.warning("earth_distance approach failed (%s). Falling back to haversine.", exc)
-      method = "haversine"
-
-  sample_q = (
-    Music
-      .select(Music, User.latitude, User.longitude)
-      .join(User, on=(Music.artist == User.id))
-      .where((User.latitude.is_null(False)) & (User.longitude.is_null(False)) & (Music.id.not_in(rated_subq)))
-      .order_by(Music.posted_at.desc())
-      .limit(q_limit)
-  )
-
-  candidates: List[Tuple[float, Any]] = []
-  seen = set()
+def recommendGeo(user, radius=10, limit=10):
+  try:
+    client = sb.create_client(url, key)
+  except Exception as e:
+    print(f"Init connection:\n{e}")
+    return
   
-  for row in sample_q:
-    if row.id in seen:
-      continue
-    
-    try:
-      dist_km = _haversine_km(float(user.latitude), float(user.longitude), float(row.latitude), float(row.longitude))
-    except Exception:
-      continue
-    
-    if dist_km <= float(radius_km):
-      candidates.append((dist_km, row))
-      seen.add(row.id)
-
-  candidates.sort(key=lambda x: (x[0],))
-  out = []
+  try:
+    rawMusics = client.table("musics").select("title, artist_id").not_.in_("artist_id", [user]).execute()
+  except Exception as e:
+    print(f"Select musics:\n{e}")
+    return
   
-  for dist_km, row in candidates[:limit]:
-    out.append({
-      "id": row.id,
-      "title": getattr(row, "title", None),
-      "artist_id": getattr(row, "artist_id", None),
-      "distance_km": float(dist_km),
-      "posted_at": getattr(row, "posted_at", None)
-    })
+  userIds = [user]
 
-  if len(out) < limit:
-    more = recommend_popular(User=User, Music=Music, UserMusicRating=UserMusicRating, user_id=user_id, limit=limit - len(out))
-    existing = {x["id"] for x in out}
-    
-    for m in more:
-      if m["id"] not in existing:
-        out.append(m)
+  for row in rawMusics.data:
+    if row["artist_id"] not in userIds:
+      userIds.append(row["artist_id"])
+  
+  try:
+    rawCoordinates = client.table("users").select("latitude, longitude").in_("id", userIds).execute()
+  except Exception as e:
+    print(f"Select locations:\n{e}")
+    return
+  
+  coordinates = rawCoordinates.data
+  default = coordinates[0]
+  distances = {}
+  index = 0
 
-  return out
+  for coordinate in coordinates:
+    distances[userIds[index]] = hs.haversine(default["latitude"], default["longitude"], coordinate["longitude"], coordinate["longitude"])
+    index += 1
+  
+  del index
+  del distances[user]
+
+  for i in list(distances.keys()):
+    if distances[i] > radius:
+      del distances[i]
+  
+  idsSearch = list(distances.keys())
+  
+  try:
+    rawRated = client.table("user_music_ratings").select("music_id").eq("user_id", user).execute()
+  except Exception as e:
+    print(f"Select rated musics:\n{e}")
+    return
+  
+  idsExcludedMusic = []
+
+  for i in rawRated.data:
+    idsExcludedMusic.append(i["music_id"])
+
+  try:
+    rawNew = client.table("musics").select("id").in_("artist_id", idsSearch).not_.in_("id", idsExcludedMusic).execute()
+  except Exception as e:
+    print(f"Select new musics:\n{e}")
+    return
+  
+  idMusics = []
+
+  for i in rawNew.data:
+    idMusics.append(i["id"])
+
+  try:
+    lastQuery = client.table("musics").select("id, title, artist_id(name)").in_("id", idMusics).limit(limit).execute()
+  except Exception as e:
+    print(f"Last query:\n{e}")
+    return
+  
+  return lastQuery.data

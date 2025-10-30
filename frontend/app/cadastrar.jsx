@@ -195,16 +195,33 @@ const Cadastro = () => {
       </LinearGradient>
     </TouchableWithoutFeedback>
   );
-});
+};
 
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  safe: { flex: 1 },
-  flex: { flex: 1 },
-  logoContainer: { alignSelf: 'center' },
-  Logo: { resizeMode: 'contain' },
-  formContainer: { width: '90%', maxWidth: 450 },
-  titulo: { fontFamily: 'negrito', color: '#fff', textAlign: 'center' },
+  gradient: { 
+    flex: 1 
+  },
+  safe: { 
+    flex: 1 
+  },
+  flex: {
+    flex: 1 
+  },
+  logoContainer: {
+    alignSelf: 'center' 
+  },
+  Logo: { 
+    resizeMode: 'contain'
+  },
+  formContainer: {
+    width: '90%',
+    maxWidth: 450 
+  },
+  titulo: { 
+    fontFamily: 'negrito',
+    color: '#fff',
+    textAlign: 'center' 
+  },
   input: {
     width: 300,
     height: 55,

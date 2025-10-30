@@ -66,7 +66,7 @@ export default function PrivacidadeScreen() {
         {/* logo sem círculo */}
         <View style={styles.logoWrap}>
           <Image
-            source={require("../assets/images/logo/Logofundo.png")}
+            source={require("../assets/images/Logofundo.png")}
             style={styles.logo}
             resizeMode="contain"
           />

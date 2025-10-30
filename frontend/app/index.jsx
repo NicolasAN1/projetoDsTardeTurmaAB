@@ -85,7 +85,7 @@ export default function Index() {
               keyboardShouldPersistTaps="handled"
             >
               <Animated.View style={{ opacity: fadeAnim, alignItems: "center", width: "100%" }}>
-                <View style={[styles.logoContainer, dynamicStyles.logoContainer]}>
+                <View style={[styles.logoContainer]}>
                   <Image
                     style={[styles.Logo, dynamicStyles.logo]}
                     source={require("../assets/images/Logofundo.png")}
@@ -93,11 +93,11 @@ export default function Index() {
                   />
                 </View>
 
-                <View style={[styles.formContainer, dynamicStyles.formPadding]}>
-                  <Text style={[styles.titulo, dynamicStyles.titulo]}>Login</Text>
+                <View style={[styles.formContainer]}>
+                  <Text style={[styles.titulo]}>Login</Text>
 
                   <TextInput
-                    style={[styles.input, dynamicStyles.input]}
+                    style={[styles.input]}
                     placeholder="E-mail"
                     placeholderTextColor="#FFF"
                     value={email}
@@ -107,7 +107,7 @@ export default function Index() {
                   />
 
                   <TextInput
-                    style={[styles.input, dynamicStyles.input]}
+                    style={[styles.input]}
                     placeholder="Senha"
                     placeholderTextColor="#FFF"
                     value={senha}
@@ -119,18 +119,17 @@ export default function Index() {
                     activeOpacity={0.85}
                     style={[
                       styles.botao,
-                      dynamicStyles.botao,
                       isPressing && { transform: [{ scale: 0.97 }], backgroundColor: "#26144d" },
                     ]}
                     onPressIn={() => setIsPressing(true)}
                     onPressOut={() => setIsPressing(false)}
                     onPress={entrar}
                   >
-                    <Text style={[styles.textoBotao, dynamicStyles.textoBotao]}>Entrar</Text>
+                    <Text style={[styles.textoBotao]}>Entrar</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity onPress={cadastro}>
-                    <Text style={[styles.linkText, dynamicStyles.linkText]}>Não possui conta?</Text>
+                    <Text style={[styles.linkText]}>Não possui conta?</Text>
                   </TouchableOpacity>
                 </View>
               </Animated.View>
@@ -149,9 +148,10 @@ const styles = StyleSheet.create({
   logoContainer: { alignSelf: "center" },
   Logo: { resizeMode: "contain" },
   formContainer: { width: "90%", maxWidth: 450 },
-  titulo: { fontFamily: "negrito", color: "#fff", textAlign: "center" },
+  titulo: { fontFamily: "negrito", color: "#fff", textAlign: "center", fontSize: 30, margin: 15 },
   input: {
     borderRadius: 25,
+    fontSize: 20,
     borderWidth: 2,
     borderColor: "#FFF",
     textAlign: "center",
@@ -159,20 +159,32 @@ const styles = StyleSheet.create({
     color: "#FFF",
     shadowColor: "#000",
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 7 },
     shadowRadius: 4,
     elevation: 5,
+    margin: 10,
+    backgroundColor: "#1D143642",
+    height: 50,
   },
   botao: {
     backgroundColor: "#1d1436",
     borderWidth: 1,
     borderColor: "#8000D5",
     alignItems: "center",
+    width: 200,
+    textAlign: "center",
+    alignSelf: 'center',
+    justifyContent: "center",
+    borderRadius: 25,
+    height: 50,
+    margin: 10,
+  
   },
   textoBotao: { color: "#FFF", fontFamily: "negrito" },
   linkText: {
     color: "#FFF",
     textAlign: "center",
     fontFamily: "normal",
+    fontSize: 20,
   },
 })
